@@ -1,123 +1,713 @@
 <!DOCTYPE html>
-<html>
-   jjjj
-<head>   
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>Code -by ZhenYu.Sha</title>
-    <style type="text/css">
-        html, body {
-            width: 100%;
-            height: 100%;
-        }
-        body {
-            background: #000;
-            overflow: hidden;
-            margin: 0;
-            padding: 0;
-        }
-    </style>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GGLua进阶测评 - 智能验证版</title>
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary: #3b82f6;
+      --color-correct: #10b981;
+      --color-wrong: #ef4444;
+      --color-light: #f8fafc;
+    }
+
+    /* 核心样式优化 */
+    pre {
+      overflow-x: auto;
+      background-color: #1e293b;
+      color: #f8fafc;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-family: 'Consolas', 'Monaco', monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .answer-box {
+      transition: all 0.3s ease;
+      border: 1px solid #d1d5db;
+      min-height: 140px;
+      max-height: 400px;
+      resize: vertical;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+    .answer-box.correct { 
+      border-color: var(--color-correct);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+    .answer-box.wrong { 
+      border-color: var(--color-wrong);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    }
+
+    .question-card { 
+      transition: transform 0.3s ease, box-shadow 0.3s ease; 
+    }
+    .question-card:hover { 
+      transform: translateY(-5px); 
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); 
+    }
+
+    .example-box {
+      background-color: #f3f4f6;
+      border-left: 3px solid #9ca3af;
+      padding: 0.8rem 1rem;
+      margin-top: 0.8rem;
+      font-size: 0.9rem;
+      color: #4b5563;
+      border-radius: 0 0.375rem 0.375rem 0;
+    }
+    .example-title { 
+      font-weight: 500; 
+      color: #4b5563;
+      display: flex;
+      align-items: center;
+    }
+    .example-title i {
+      margin-right: 0.5rem;
+      color: #6b7280;
+    }
+
+    /* 新增UI组件样式 */
+    .header-notice {
+      background-color: rgba(59, 130, 246, 0.1);
+      border-left: 4px solid var(--color-primary);
+      padding: 1rem 1.5rem;
+      margin-top: 1rem;
+      border-radius: 0 0.375rem 0.375rem 0;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .reward-section {
+      background-color: white;
+      padding: 3rem 0;
+      margin-top: 2rem;
+      box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .reward-card {
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: transform 0.3s ease;
+    }
+    .reward-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .reward-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+    }
+    .reward-title i {
+      margin-right: 0.5rem;
+      font-size: 1.2em;
+    }
+    .reward-title.crown { color: #d4af37; }
+    .reward-title.star { color: #f59e0b; }
+    .reward-title.penalty { color: #ef4444; }
+  </style>
 </head>
-   
-<body>  
-<canvas id="cvs"></canvas>
-<script type="text/javascript">
-    var cvs = document.getElementById("cvs");
-    var ctx = cvs.getContext("2d");
-    var cw = cvs.width = document.body.clientWidth;
-    var ch = cvs.height = document.body.clientHeight;
-    //动画绘制对象
-    var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-    var codeRainArr = []; //代码雨数组
-    var cols = parseInt(cw / 15); //代码雨列数
-    var step = 26;    //步长，每一列内部数字之间的上下间隔
-    ctx.font = "bold 26px microsoft yahei"; //声明字体，个人喜欢微软雅黑
+<body class="font-sans bg-light min-h-screen">
+  <!-- 头部标题 -->
+  <header class="bg-primary text-white py-6 shadow-md">
+    <div class="container mx-auto px-4 text-center">
+      <h1 class="text-3xl font-bold">GGLua进阶测评</h1>
+      <p class="opacity-90">智能验证版 | 答案匹配更灵活</p>
+      <div class="header-notice text-left">
+        <p><i class="fas fa-info-circle mr-2"></i> 本网页由 <strong>@不多想1507743394</strong> 制作，旨在检测群成员的技术水平。</p>
+        <p class="mt-1">有GGLua研究兴趣者，欢迎各位朋友加入我们一起讨论交流。</p>
+        <p class="mt-1"><i class="fas fa-hashtag mr-2"></i> 神秘代码：<span class="font-mono">310879834</span></p>
+      </div>
+    </div>
+  </header>
 
-    function createColorCv() {
-        //画布基本颜色
-        ctx.fillStyle = "#242424";
-        ctx.fillRect(0, 0, cw, ch);
-    }
+  <main class="container mx-auto px-4 py-8">
+    <!-- 分数统计栏 -->
+    <div class="bg-white rounded-xl shadow p-4 mb-8">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div>
+          <h2 class="text-lg font-semibold">测评进度</h2>
+          <div class="w-full bg-gray-200 rounded-full h-2 mt-1 overflow-hidden">
+            <div id="progress-bar" class="bg-primary h-2 rounded-full" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="mt-4 md:mt-0 text-center">
+          <h2 class="text-lg font-semibold">当前得分</h2>
+          <div class="text-2xl font-bold text-primary mt-1" id="score">0</div>
+        </div>
+      </div>
+    </div>
 
-    //创建代码雨
-    function createCodeRain() {
-        for (var n = 0; n < cols; n++) {
-            var col = [];
-            //基础位置，为了列与列之间产生错位
-            var basePos = parseInt(Math.random() * 300);
-            //随机速度 3~13之间
-            var speed = parseInt(Math.random() * 30) + 3;
-            //每组的x轴位置随机产生
-            var colx = parseInt(Math.random() * cw)
+    <!-- 基础必答题（6题，q1~q6） -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold mb-6 flex items-center">
+        <i class="fas fa-graduation-cap text-primary mr-3"></i>基础必答题 (30分)
+      </h2>
+      <div class="space-y-6">
 
-            //绿色随机
-            var rgbr = 0;
-            var rgbg = parseInt(Math.random() * 255);
-            var rgbb = 0;
-            //ctx.fillStyle = "rgb("+r+','+g+','+b+")"
+        <!-- 题目1：变量类型急救箱 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">1. 变量类型急救箱 (5分)</h3>
+            <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm">简单</span>
+          </div>
+          <pre class="mb-4 bg-gray-800 text-white p-3 rounded">
+local a = {flag=4, value=999}
+local b = gg.TYPE_DWORD
+local c = nil
+          </pre>
+          <p class="mb-4">问：<code>type(a)</code>、<code>type(b)</code>、<code>type(c)</code>分别是什么？（用代码术语回答）</p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q1" rows="3"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-list"></i> 格式示范：</div>
+            <p>type(变量名)是类型1，type(变量名)是类型2，type(变量名)是类型3</p>
+          </div>
+        </div>
 
-            for (var i = 0; i < parseInt(ch / step) / 2; i++) {
-                var code = {
-                    x: colx,
-                    y: -(step * i) - basePos,
-                    speed: speed,
-                    //  text : parseInt(Math.random()*10)%2 == 0 ? 0 : 1  //随机生成0或者1
-                    text: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "s", "t", "u", "v", "w", "x", "y", "z"][parseInt(Math.random() * 11)], //随机生成字母数组中的一个
-                    color: "rgb(" + rgbr + ',' + rgbg + ',' + rgbb + ")"
-                }
-                col.push(code);
+        <!-- 题目2：循环语法找茬 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">2. 循环语法找茬 (5分)</h3>
+            <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm">简单</span>
+          </div>
+          <pre class="mb-4 bg-gray-800 text-white p-3 rounded">
+for i=1 to 10
+    print(i)
+end
+while a&lt;10; do
+    a=a+1
+end
+          </pre>
+          <p class="mb-4">找出以下代码的3处错误：</p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q2" rows="4"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-list"></i> 格式示范：</div>
+            <p>1. 语法错误描述1<br>2. 语法错误描述2<br>3. 语法错误描述3</p>
+          </div>
+        </div>
+
+        <!-- 题目3：内存操作填空 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">3. 内存操作填空 (5分)</h3>
+            <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm">简单</span>
+          </div>
+          <pre class="mb-4 bg-gray-800 text-white p-3 rounded">
+gg.clearResults()
+gg.setRanges(____) -- 设置CA内存
+gg.searchNumber("500", ____)
+gg.getResults(gg.getResultsCount())
+gg.editAll("999999", ____)
+          </pre>
+          <input type="text" class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q3" placeholder="答案用逗号分隔">
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-code"></i> 格式示范：</div>
+            <p>答案示例：数值1,数值2,数值3（表示参数1、参数2、参数3）</p>
+          </div>
+        </div>
+
+        <!-- 题目4：表操作小剧场 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">4. 表操作小剧场 (5分)</h3>
+            <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm">简单</span>
+          </div>
+          <pre class="mb-4 bg-gray-800 text-white p-3 rounded">
+local list = {"飞爪", "火箭筒", "医疗箱"}
+table.remove(list, 2)
+list[#list+1] = "肾上腺素"
+          </pre>
+          <p class="mb-4">问：最终list表的内容是什么？（用游戏道具名称回答）</p>
+          <input type="text" class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q4">
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-list"></i> 格式示范：</div>
+            <p>答案示例：道具1,道具2,道具3</p>
+          </div>
+        </div>
+
+        <!-- 题目5：判断语句陷阱 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">5. 判断语句陷阱 (5分)</h3>
+            <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm">简单</span>
+          </div>
+          <pre class="mb-4 bg-gray-800 text-white p-3 rounded">
+local hp = 0
+if hp > 0 then
+    print("存活")
+elseif hp == 0 then
+    print("倒地")
+else
+    print("淘汰")
+end
+          </pre>
+          <p class="mb-4">当hp=0时输出什么？如果想让hp=0时同时触发"存活"和"倒地"，如何修改？</p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q5" rows="4"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-code"></i> 格式示范：</div>
+            <p>输出"结果描述"<br>修改方法：<br>1. 删除某条件判断<br>2. 添加额外的if语句</p>
+          </div>
+        </div>
+
+        <!-- 题目6：函数参数魔法 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">6. 函数参数魔法 (5分)</h3>
+            <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm">简单</span>
+          </div>
+          <pre class="mb-4 bg-gray-800 text-white p-3 rounded">
+function cheat(a,b)
+    return a..b.."已开启"
+end
+print(cheat("穿墙", "加速"))
+          </pre>
+          <p class="mb-4">输出结果是什么？如果想输出"飞天遁地已开启"，参数应该怎么写？</p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q6" rows="3"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-code"></i> 格式示范：</div>
+            <p>输出"结果描述"<br>参数示例：函数名("参数1", "参数2")</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 进阶应用题（4题，q7~q10） -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold mb-6 flex items-center">
+        <i class="fas fa-project-diagram text-secondary mr-3"></i>进阶应用题 (40分)
+      </h2>
+      <div class="space-y-6">
+
+        <!-- 题目7：内存偏移计算 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">1. 内存偏移计算 (10分)</h3>
+            <span class="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm">中等</span>
+          </div>
+          <p class="mb-4">已知特征码地址为0x123456，目标值在特征码下方0x20偏移处，D类型。用<code>gg.setValues</code>写出修改目标值为666的代码。</p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q7" rows="6"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-code"></i> 代码格式示范：</div>
+            <pre class="bg-gray-100 text-gray-800 p-2 rounded text-sm">
+gg.setValues({{
+    address = 0x特征码地址+偏移量,
+    flags = 类型标识,
+    value = 目标值
+}})
+            </pre>
+          </div>
+        </div>
+
+        <!-- 题目8：交互界面设计 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">2. 交互界面设计 (10分)</h3>
+            <span class="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm">中等</span>
+          </div>
+          <p class="mb-4">设计一个单选框，选项为"追捕者"和"逃生者"，根据选择打印不同的战术提示。（需包含返回值判断）</p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q8" rows="6"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-code"></i> 代码格式示范：</div>
+            <pre class="bg-gray-100 text-gray-800 p-2 rounded text-sm">
+local 变量名 = gg.choice({选项1, 选项2})
+if 变量名 == 1 then
+    gg.toast("选项1提示")
+else
+    gg.toast("选项2提示")
+end
+            </pre>
+          </div>
+        </div>
+
+        <!-- 题目9：循环与搜索结合 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">3. 循环与搜索结合 (10分)</h3>
+            <span class="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm">中等</span>
+          </div>
+          <p class="mb-4">编写代码：搜索数值100，若结果为0则提示"没找到"，否则将前5个结果修改为999。（需包含循环和条件判断）</p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q9" rows="6"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-code"></i> 代码格式示范：</div>
+            <pre class="bg-gray-100 text-gray-800 p-2 rounded text-sm">
+gg.searchNumber("搜索值", 类型)
+local count = gg.getResultsCount()
+if count == 0 then
+    gg.toast("提示信息")
+else
+    -- 处理结果逻辑
+end
+            </pre>
+          </div>
+        </div>
+
+        <!-- 题目10：数据类型转换 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">4. 数据类型转换 (10分)</h3>
+            <span class="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm">中等</span>
+          </div>
+          <p class="mb-4">将内存地址0x56789A的D类型值转换为16进制并打印，用<code>string.format</code>实现。</p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q10" rows="4"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-code"></i> 代码格式示范：</div>
+            <pre class="bg-gray-100 text-gray-800 p-2 rounded text-sm">
+local val = gg.getValues({{address=地址, flags=类型}})[1].value
+local 转换后值 = string.format("格式字符串", val)
+gg.toast("提示信息" .. 转换后值)
+            </pre>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 综合挑战题（2题，q11~q12） -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold mb-6 flex items-center">
+        <i class="fas fa-challenge text-accent mr-3"></i>综合挑战题 (30分)
+      </h2>
+      <div class="space-y-6">
+
+        <!-- 题目11：多知识点综合应用 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">1. 多知识点综合应用 (15分)</h3>
+            <span class="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm">困难</span>
+          </div>
+          <p class="mb-4">编写一个"无限道具"脚本，要求：<br>
+            - 检测道具CD值（假设CD地址在特征码+0x10偏移，W类型）<br>
+            - 当CD>0时自动修改为0<br>
+            - 添加悬浮窗开关功能<br>
+            - 需包含内存搜索、偏移计算、循环判断和UI交互
+          </p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q11" rows="9"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-code"></i> 代码结构示范（无答案）：</div>
+            <pre class="bg-gray-100 text-gray-800 p-2 rounded text-sm">
+-- 1. 特征码搜索逻辑
+gg.searchNumber("特征码", 类型)
+gg.getResults(数量)
+local 地址变量 = gg.getResults(1)[1].address + 偏移量
+
+-- 2. 悬浮窗交互逻辑
+gg.showUiButton()
+while true do
+    if gg.isClickedUiButton() then
+        gg.toast("开关提示")
+    end
+    -- 3. 数值检测与修改
+    local 值变量 = gg.getValues({{address=地址变量, flags=类型}})[1].value
+    if 值变量 > 阈值 then 
+        gg.setValues({{address=地址变量, flags=类型, value=目标值}})
+    end
+    gg.sleep(毫秒数)
+end
+            </pre>
+          </div>
+        </div>
+
+        <!-- 题目12：反作弊对抗设计 -->
+        <div class="question-card bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-semibold">2. 反作弊对抗设计 (15分)</h3>
+            <span class="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm">困难</span>
+          </div>
+          <p class="mb-4">模拟《逃跑吧！少年》反作弊系统，设计一个检测"瞬移挂"的脚本：<br>
+            - 监测玩家移动速度（假设速度值在0xABCDEF地址，F类型）<br>
+            - 正常速度阈值为5-10，超过15则判定为作弊<br>
+            - 触发作弊时记录日志并弹窗警告<br>
+            - 需包含数据读取、阈值判断、文件操作和时间记录
+          </p>
+          <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q12" rows="9"></textarea>
+          <div class="example-box">
+            <div class="example-title"><i class="fas fa-code"></i> 代码结构示范（无答案）：</div>
+            <pre class="bg-gray-100 text-gray-800 p-2 rounded text-sm">
+while true do
+    -- 1. 读取数值
+    local 值变量 = gg.getValues({{address=地址, flags=类型}})[1].value
+    
+    -- 2. 阈值判断
+    if 值变量 > 作弊阈值 then
+        -- 3. 日志记录
+        local 时间变量 = os.date("时间格式")
+        local 日志内容 = "作弊信息：值" .. 值变量 .. " 时间：" .. 时间变量 .. "\n"
+        io.open("日志路径", "a"):write(日志内容)
+        io.close()
+        
+        -- 4. 警告提示
+        gg.alert("警告信息！\n当前值：" .. 值变量)
+    end
+    
+    gg.sleep(毫秒数)
+end
+            </pre>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 脑洞创意题（1题，q13） -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold mb-6 flex items-center">
+        <i class="fas fa-lightbulb text-purple-500 mr-3"></i>脑洞创意题 (10分)
+      </h2>
+      <div class="question-card bg-white rounded-xl shadow p-6">
+        <div class="flex justify-between items-start mb-4">
+          <h3 class="text-xl font-semibold">用GGLua实现一个"彩蛋功能"</h3>
+          <span class="bg-purple-100 text-purple-600 px-2 py-1 rounded-full text-sm font-medium">创意</span>
+        </div>
+        <p class="mb-4">当玩家连续点击屏幕5次时，播放一段音乐并弹窗显示"你发现了隐藏彩蛋！"。（需包含事件监听、循环计数和多媒体操作）</p>
+        <textarea class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q13" rows="7"></textarea>
+        <div class="example-box">
+          <div class="example-title"><i class="fas fa-code"></i> 代码结构示范（无答案）：</div>
+          <pre class="bg-gray-100 text-gray-800 p-2 rounded text-sm">
+local 计数变量 = 0
+gg.onClick(function() {
+    计数变量 = 计数变量 + 1
+    if 计数变量 >= 次数 then
+        -- 多媒体操作（如播放音乐）
+        os.execute("命令")
+        gg.alert("提示信息")
+        计数变量 = 0  -- 重置计数
+    end
+})
+            </pre>
+          </div>
+        </div>
+      </section>
+
+    <!-- 试卷彩蛋（1题，q14） -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold mb-6 flex items-center">
+        <i class="fas fa-egg text-red-500 mr-3"></i>彩蛋附加题 (5分)
+      </h2>
+      <div class="question-card bg-white rounded-xl shadow p-6">
+        <p class="mb-4">写出让群主电脑蓝屏的GGLua代码（提示：无限循环+内存操作，实际请勿运行）：</p>
+        <pre class="mb-4 bg-gray-800 text-white p-3 rounded">
+while true do
+    ____ -- 此处填写代码
+end
+        </pre>
+        <input type="text" class="w-full p-3 border rounded-lg focus:outline-none answer-box" id="q14" placeholder="危险代码，谨慎输入">
+        <div class="example-box">
+          <div class="example-title"><i class="fas fa-code"></i> 格式示范（仅语法参考）：</div>
+          <p>gg.操作函数("参数", 类型)  -- 示例语法，非正确答案</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 提交按钮 -->
+    <div class="text-center mt-12 mb-16">
+      <button id="submit-btn" class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-full text-lg shadow transform hover:scale-105 transition-all duration-300">
+        <i class="fas fa-check-circle mr-2"></i>提交测评并评分
+      </button>
+    </div>
+  </main>
+
+  <!-- 奖励机制展示区 -->
+  <section class="reward-section">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold mb-8 text-center">
+        <i class="fas fa-trophy text-yellow-500 mr-3"></i>测评奖励机制
+      </h2>
+      
+      <div class="max-w-4xl mx-auto">
+        <div class="reward-card">
+          <h3 class="reward-title crown text-2xl">
+            <i class="fas fa-crown"></i> 头衔称号体系（总分100分）获得后截屏给群主
+          </h3>
+          <ul class="space-y-3 text-lg">
+            <li class="flex items-start">
+              <i class="fas fa-bronze-medal text-yellow-500 mt-1 mr-3"></i>
+              <span>青铜作弊师（40-59分）：获得"入门挂哥"头衔，群聊显示为绿色字体</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-silver-medal text-gray-400 mt-1 mr-3"></i>
+              <span>白银作弊师（60-79分）：获得"熟练挂哥"头衔，解锁专属作弊表情包</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-gold-medal text-yellow-400 mt-1 mr-3"></i>
+              <span>黄金作弊师（80-94分）：获得"资深挂哥"头衔，拥有群公告置顶1次权限</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-trophy text-purple-500 mt-1 mr-3"></i>
+              <span>铂金作弊师（95-100分）：获得"作弊大师"头衔，可定制专属群昵称颜色</span>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="reward-card">
+          <h3 class="reward-title star text-2xl">
+            <i class="fas fa-star"></i> 特殊技能奖励
+          </h3>
+          <ul class="space-y-3 text-lg">
+            <li class="flex items-start">
+              <i class="fas fa-lightbulb text-purple-500 mt-1 mr-3"></i>
+              <span>最佳创意奖（创意题满分）：获得"脑洞挂王"称号，群文件下载权限翻倍</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-bolt text-yellow-500 mt-1 mr-3"></i>
+              <span>手速达人（30分钟内完成）：获得"光速挂神"称号，专属聊天气泡特效</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-bug text-green-500 mt-1 mr-3"></i>
+              <span>debug大师（找出所有隐藏错误）：获得"反挂先锋"称号，可指定下一期测评题目</span>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="reward-card">
+          <h3 class="reward-title penalty text-2xl">
+            <i class="fas fa-exclamation-triangle"></i> 趣味惩罚机制
+          </h3>
+          <ul class="space-y-3 text-lg">
+            <li class="flex items-start">
+              <i class="fas fa-user-slash text-red-500 mt-1 mr-3"></i>
+              <span>低于40分：群昵称强制改为"老实人"7天</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-file-alt text-red-500 mt-1 mr-3"></i>
+              <span>交白卷：需在群内发送"我是GG萌新"表情包20次</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-ban text-red-500 mt-1 mr-3"></i>
+              <span>作弊被抓：头像强制更换为"作弊狗"图标3天</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  <footer class="bg-gray-800 text-white py-6 mt-0">
+    <div class="container mx-auto px-4 text-center">
+      <p>GGLua进阶测评 © 2023 | 制作：@不多想1507743394 | 神秘代码：310879834</p>
+    </div>
+  </footer>
+
+  <script>
+    // 答案库（智能匹配算法）
+    const answerBank = {
+      // 基础题（q1~q6）
+      q1: /table|number|nil/i,
+      q2: function(answer) {
+        const errors = [
+          /for\s*循环\s*缺少\s*do\s*关键字/i,
+          /while\s*条件\s*后\s*多余\s*分号/i,
+          /变量\s*a\s*未定义/i
+        ];
+        return errors.filter(re => re.test(answer)).length >= 3;
+      },
+      q3: /4,4,4/i,
+      q4: /飞爪,医疗箱,肾上腺素/i,
+      q5: function(answer) {
+        return /倒地/i.test(answer) && 
+               (/删除\s*elseif|添加\s*print/i.test(answer));
+      },
+      q6: function(answer) {
+        return /穿墙加速已开启/i.test(answer) && 
+               /cheat\("飞天",\s*"遁地"\)/i.test(answer);
+      },
+      // 进阶题（q7~q10 - 智能匹配关键词）
+      q7: function(answer) {
+        // 关键关键词组合匹配（不要求顺序和格式）
+        const keywords = [
+          "gg.setValues", 
+          "address = 0x123456 + 0x20", 
+          "flags = 4", 
+          "value = 666"
+        ];
+        return keywords.every(key => answer.includes(key));
+      },
+      q8: /gg.choice\(\{"追捕者",\s*"逃生者"\}/i,
+      q9: function(answer) {
+        // 关键步骤匹配：搜索、计数、结果处理、修改
+        return answer.includes("gg.searchNumber(\"100\", 4)") && 
+               answer.includes("gg.getResultsCount()") && 
+               answer.includes("if count == 0") && 
+               answer.includes("gg.setValues(results)");
+      },
+      q10: /string.format\("%x",/i,
+
+      // 综合题（q11~q12）
+      q11: /gg.getResults|gg.setValues|gg.showUiButton/i,
+      q12: /gg.getValues|io.open|gg.alert/i,
+
+      // 创意+彩蛋（q13~q14）
+      q13: /gg.click|os.execute|gg.alert/i,
+      q14: /gg.editAll|无限循环/i
+    };
+
+    // 每题分值
+    const questionScore = {
+      q1: 5, q2: 5, q3: 5, q4: 5, q5: 5, q6: 5,
+      q7: 10, q8: 10, q9: 10, q10: 10,
+      q11: 15, q12: 15, q13: 10, q14: 5
+    };
+
+    // 提交评分逻辑
+    document.getElementById('submit-btn').addEventListener('click', function() {
+      let totalScore = 0;
+      let correctCount = 0;
+      const totalQuestions = Object.keys(answerBank).length;
+
+      for (const qId in answerBank) {
+        if (answerBank.hasOwnProperty(qId) && questionScore.hasOwnProperty(qId)) {
+          const userAnswer = document.getElementById(qId)?.value || '';
+          const isCorrect = typeof answerBank[qId] === 'function' 
+                           ? answerBank[qId](userAnswer) 
+                           : answerBank[qId].test(userAnswer);
+          const answerEl = document.getElementById(qId);
+
+          if (answerEl) {
+            answerEl.classList.remove('correct', 'wrong');
+            if (isCorrect) {
+              answerEl.classList.add('correct');
+              totalScore += questionScore[qId];
+              correctCount++;
+            } else {
+              answerEl.classList.add('wrong');
             }
-            codeRainArr.push(col);
+          }
         }
-    }
+      }
 
-    //代码雨下起来
-    function codeRaining() {
-        //把画布擦干净
-        ctx.clearRect(0, 0, cw, ch);
-        //创建有颜色的画布
-        //createColorCv();
-        for (var n = 0; n < codeRainArr.length; n++) {
-            //取出列
-            col = codeRainArr[n];
-            //遍历列，画出该列的代码
-            for (var i = 0; i < col.length; i++) {
-                var code = col[i];
-                if (code.y > ch) {
-                    //如果超出下边界则重置到顶部
-                    code.y = 0;
-                } else {
-                    //匀速降落
-                    code.y += code.speed;
-                }
-                
-                //1 颜色也随机变化
-                //ctx.fillStyle = "hsl("+(parseInt(Math.random()*359)+1)+",30%,"+(50-i*2)+"%)"; 
+      const progress = Math.floor((correctCount / totalQuestions) * 100);
+      document.getElementById('progress-bar').style.width = progress + '%';
+      document.getElementById('score').textContent = totalScore;
 
-                //2 绿色逐渐变浅
-                // ctx.fillStyle = "hsl(123,80%,"+(30-i*2)+"%)"; 
+      let title = '';
+      if (totalScore < 40) title = '🥇 青铜下饭玩家';
+      else if (totalScore < 60) title = '🥈 青铜作弊师';
+      else if (totalScore < 80) title = '🥉 白银作弊师';
+      else if (totalScore < 95) title = '🏅 黄金作弊师';
+      else title = '🎖️ 铂金作弊师';
 
-                //3 绿色随机
-                // var r= 0;
-                // var g= parseInt(Math.random()*255) + 3;
-                // var b= 0;
-                // ctx.fillStyle = "rgb("+r+','+g+','+b+")";
+      alert(`得分：${totalScore} 分\n头衔：${title}\n提示：绿色为正确，红色为错误`);
+    });
 
-                //4 一致绿
-                ctx.fillStyle = code.color;
-
-
-                //把代码画出来
-                ctx.fillText(code.text, code.x, code.y);
-            }
-        }
-        requestAnimationFrame(codeRaining);
-    }
-
-    //创建代码雨
-    createCodeRain();
-    //开始下雨吧 GO>>
-    requestAnimationFrame(codeRaining);
-</script>
-   
+    // 滚动动画
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.question-card').forEach((card, i) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.6s, transform 0.6s';
+        setTimeout(() => {
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, 100 + i * 100);
+      });
+    });
+  </script>
 </body>
 </html>
